@@ -1,0 +1,39 @@
+HumanCount - How To Run (Local)
+===============================
+
+Prerequisites
+-------------
+- Python 3.10+ installed and on PATH
+- Node.js 18+ installed and on PATH
+
+Backend (FastAPI)
+-----------------
+1) Open a terminal and run:
+   cd F:\gopi\humancount\backend
+   python -m venv venv
+   venv\Scripts\activate
+   pip install -r requirements.txt
+   python main.py
+
+Backend will run at:
+http://localhost:8000
+
+Frontend (React + Vite)
+-----------------------
+2) Open a new terminal and run:
+   cd F:\gopi\humancount\frontend
+   npm install
+   npm run dev
+
+Frontend will run at:
+http://localhost:5173
+
+Usage
+-----
+- Upload Mode: drop an image or video to detect humans.
+- Live Mode: click "Start Camera" for realtime webcam detection.
+
+Notes
+-----
+- If the webcam stream does not start, allow camera permissions in your browser.
+- For production, set VITE_API_URL to your backend URL.

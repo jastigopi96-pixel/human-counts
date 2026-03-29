@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+
+# YOLO model weights (auto-downloaded)
+*.pt
+*.onnx
+runs/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Temp files
+/tmp/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+*.override.yml

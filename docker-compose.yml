@@ -1,0 +1,118 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HumanCount — docker-compose for local development and production
+#
+# Usage:
+#   Development:   docker-compose up --build
+#   GPU (NVIDIA):  docker-compose --profile gpu up --build
+#   Production:    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Backend (FastAPI + YOLOv8) ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: humancount-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://frontend:3000
+      - MAX_IMAGE_SIZE_MB=20
+      - MAX_VIDEO_SIZE_MB=500
+      - YOLO_MODEL=yolov8n.pt
+      - CONFIDENCE_THRESHOLD=0.35
+      - IOU_THRESHOLD=0.45
+      - DEVICE=cpu           # Change to "cuda:0" for GPU
+      - FRAME_SKIP=3
+    volumes:
+      - humancount-uploads:/tmp/humancount/uploads
+      - humancount-outputs:/tmp/humancount/outputs
+      - humancount-logs:/tmp/humancount
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s   # Give model time to load
+    networks:
+      - humancount-net
+
+  # ── Backend with GPU support (optional profile) ────────────────────────────
+  backend-gpu:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gpu
+    container_name: humancount-backend-gpu
+    restart: unless-stopped
+    profiles: ["gpu"]
+    ports:
+      - "8000:8000"
+    environment:
+      - DEVICE=cuda:0
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+    volumes:
+      - humancount-uploads:/tmp/humancount/uploads
+      - humancount-outputs:/tmp/humancount/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - humancount-net
+
+  # ── Frontend (Vite dev server — dev only) ──────────────────────────────────
+  frontend-dev:
+    image: node:20-alpine
+    container_name: humancount-frontend-dev
+    working_dir: /app
+    profiles: ["dev"]
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+    networks:
+      - humancount-net
+
+  # ── Nginx reverse proxy (production) ──────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: humancount-nginx
+    restart: unless-stopped
+    profiles: ["prod"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    networks:
+      - humancount-net
+
+volumes:
+  humancount-uploads:
+  humancount-outputs:
+  humancount-logs:
+
+networks:
+  humancount-net:
+    driver: bridge
