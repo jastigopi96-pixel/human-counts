@@ -42,16 +42,7 @@ RUN mkdir -p /tmp/humancount/uploads /tmp/humancount/outputs
 # Pre-download YOLO model at build time (avoids first-request latency)
 RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 
-# Non-root user for security
-RUN useradd -m -u 1001 appuser && chown -R appuser /app /tmp/humancount
-USER appuser
 
-EXPOSE 8000
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -62,7 +53,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Expose Render port
+# 🔥 ADD THIS LINE (IMPORTANT)
+ENV PYTHONPATH=/app
+
 EXPOSE 10000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
